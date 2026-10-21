@@ -1,0 +1,99 @@
+# Anil & Priyanka — digital wedding invitation
+
+A full-width, responsive wedding invitation website (phone and desktop), modelled on the Invifest
+"envelope + scratch card + schedule" style but built from scratch with original
+assets. No build step, no backend: open `site/index.html` through any static server.
+
+## Run it
+
+```bash
+cd site
+python3 -m http.server 8080      # then open http://localhost:8080
+```
+
+Opening the file directly (file://) also works, but browsers are stricter about
+audio there, so prefer a local server.
+
+## Files
+
+| Path | What it is |
+| --- | --- |
+| `site/index.html` | The whole invite: HTML, CSS (top `<style>`), inline SVG symbols, and one script at the bottom |
+| `site/song.mp3` | Original 63 s instrumental loop (tanpura, santoor-style melody, frame drum). Royalty-free: it was synthesised by `tools/compose.py` |
+| `tools/compose.py` | Regenerates the song: `python3 tools/compose.py out.wav` then `ffmpeg -i out.wav -b:a 128k site/song.mp3` (needs numpy + scipy) |
+
+External libraries load from jsDelivr, pinned: `gsap@3.12.5` (+ ScrollTrigger) and
+`canvas-confetti@1.9.3`. Fonts come from Google Fonts: Pinyon Script (names),
+Cormorant Garamond (body), Marcellus SC (labels), Tiro Devanagari Hindi (shlokas).
+
+## The couple's details (source: Invitation.pdf, the printed card)
+
+- Couple: **Anil & Priyanka** ("Together with our families"); no parents' names on the card
+- Our Residence: #45, Shobha Sundari Nivas, Behradih, Domchanch, Koderma, Jharkhand – 825407
+- Wedding venue: Kamta, Giridih, Jharkhand – 815313
+- Programme ("Wedding Celebrations"):
+  - Mon 30 Nov 2026: Shubh Lagnotsav, 6:00 PM onwards · Our Residence
+  - Tue 1 Dec 2026: Mandapachhadan, Devpujan, Ghritdhari, 10:00 AM onwards · Our Residence
+  - Wed 2 Dec 2026: Baraat Prasthan and the auspicious marriage ceremony, 6:00 PM onwards · Kamta, Giridih
+  - Thu 3 Dec 2026: Reception, 7:00 PM onwards · Our Residence
+- Closing line: "Your presence will make our celebration more special"
+
+All of this is plain text in `site/index.html`; search for the words to edit them.
+
+## Settings (top of the script in index.html)
+
+```js
+var WEDDING = Date.parse("2026-12-02T18:00:00+05:30");   // countdown target (Baraat Prasthan)
+var RSVP_WHATSAPP = "";   // put a number like "919876543210" to send RSVPs to one family phone
+```
+
+With `RSVP_WHATSAPP` empty, WhatsApp opens and the guest picks who to send it to.
+
+## How the page works (in order)
+
+1. **Envelope gate** (`#gate`): full-screen, scroll locked. Maroon velvet envelope drawn as inline SVG
+   (viewBox 360x500): `.env-back` (rani-pink silk lining), `.env-card` (mini card), `.pocket`
+   (side flaps + arched bottom flap with gold zari borders), `.flap` (Mughal-arch top flap, 3D, front =
+   maroon brocade + lotus, back = pink lining), `.sealwrap` (gold kundan brooch "A&P" with a latkan tassel).
+2. **Tap** → `openGate()`: starts `#bgm` inside the tap (this is what unlocks audio on phones), then a GSAP
+   timeline: tassel drops and brooch lifts (0–0.8 s), flap swings open (0.45–1.5 s), card rises (1.3 s),
+   gold rays + sparks (1.6 s), envelope drops away, card zooms, warm white `#flash` (2.9 s), `reveal()`
+   (3.55 s), flash fades.
+3. **Hero** (full screen, maroon): marigold toran, swinging temple bells, slowly turning gold mandala,
+   and a gold palace arch (`.arch`) topped by a kalash, holding the shloka, both families and the names.
+4. **Save the date**: three `<canvas>` scratch cards (NOV / 26 / 2026). Clearing 32% of any card calls
+   `unlockAll()`: reveals all three, bell chime, confetti, un-hides `#celebrations`. "Reveal without
+   scratching" does the same.
+5. **Countdown** (maroon band) to the barat; switches to "Happily married" after; Add to Google Calendar.
+6. **Wedding Celebrations**: four day cards in `#stack`, `position: sticky`; `initStack` shrinks, tilts and dims
+   each as the next covers it. Phone = portrait cards, 860px+ = landscape cards (band left, list right).
+   Day colours: mehndi green, rani pink, sindoor red, night indigo.
+7. **Venue** (maroon): gold mandala medallion + address, directions and copy buttons (two columns on desktop).
+8. **RSVP**: builds a `https://wa.me/?text=...` link live from the form (two columns on desktop).
+9. **Footer**, falling marigold/rose/jasmine petals (`#petals` canvas), floating music button.
+
+Audio resilience: if the browser refuses playback, it retries on the next tap or scroll; if the phone
+pauses it (a call, switching apps), it resumes when the guest returns, unless they paused it themselves.
+
+## Design language
+
+Classic North Indian shaadi palette, all tokens at the top of the `<style>`: maroon `--maroon`,
+sindoor red `--sindoor`, gold zari (`--gold`, `--gold-hi`, `--foil` metallic gradient for names and
+numbers), with marigold, rani pink and mehndi green as accents. Gold brocade tile `--brocade` on dark
+bands, marigold `--toran` garlands, mandalas generated by `mandala()` in the script.
+Fonts: Pinyon Script (names), Cinzel (capitals), Cormorant Garamond (body), Tiro Devanagari Hindi
+(shlokas) and Rozha One (large Devanagari).
+
+## Ideas for next steps
+
+- Add couple photos (a sticky polaroid "Our Story" stack fits between countdown and programme)
+- Send RSVPs to a sheet: POST the form to an n8n webhook that appends to Google Sheets
+- A 1200×630 `og:image` so the WhatsApp link preview shows a picture
+- Deploy: drag the `site` folder into Netlify Drop, or `npx vercel site`, then add a custom domain
+- Hindi version of the text (a language toggle)
+
+## Rules
+
+- Only use music, photos and fonts we have rights to. Never pull songs from download sites.
+- Test on a real phone (iPhone Safari and Android Chrome) and inside WhatsApp's
+  in-app browser before sharing the link.
